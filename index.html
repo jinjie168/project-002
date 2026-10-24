@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fruit Lines</title>
 <style>
-:root{--n:3;--gold:#ffd36b;--mint:#3ee6b0}
+:root{--bs:min(94vw,66vh,640px);--n:3;--gold:#ffd36b;--mint:#3ee6b0}
 *{-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;color:#fff;font-family:"Poppins","Segoe UI",system-ui,-apple-system,"PingFang SC",sans-serif}
 body{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px;box-sizing:border-box;overflow-x:hidden;
@@ -13,7 +13,7 @@ body::before{background:#7c4dff;top:-15vmax;left:-12vmax}
 body::after{background:#ff7ab8;bottom:-18vmax;right:-14vmax;animation-delay:-9s}
 @keyframes drift{to{transform:translate(8vmax,6vmax) scale(1.15)}}
 h1{margin:0}
-#homeScreen{display:flex;flex-direction:column;align-items:center;gap:22px;margin-top:16vh}
+#homeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;min-height:calc(100vh - 28px);min-height:calc(100dvh - 28px)}
 #homeScreen h1{font-size:clamp(38px,9vw,60px);font-weight:800;letter-spacing:-1px;background:linear-gradient(90deg,#fff,#ffd36b 45%,#ff8ad1);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 24px rgba(255,140,200,.35))}
 .hbig{display:flex;gap:14px;font-size:clamp(46px,12vw,72px)}
 .hbig span{display:inline-block;filter:drop-shadow(0 10px 14px rgba(0,0,0,.35));animation:float 3s ease-in-out infinite}
@@ -27,7 +27,7 @@ background:linear-gradient(135deg,#7c4dff,#ff4fa3);box-shadow:0 10px 30px rgba(2
 #start:active,#ovb:active{transform:scale(.97)}
 #newGame{display:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;font:600 15px "Poppins",system-ui,sans-serif;padding:10px 28px;border-radius:999px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 #newGame:hover{background:rgba(255,255,255,.18)}
-#game{display:none;flex-direction:column;align-items:center;width:100%;padding-top:6px}
+#game{display:none;flex-direction:column;align-items:center;width:100%;box-sizing:border-box;padding:6px 0 3vh;min-height:calc(100vh - 28px);min-height:calc(100dvh - 28px)}
 .bar{display:flex;gap:12px;align-items:center;justify-content:center;margin:0 0 12px;max-width:calc(100vw - 80px)}
 .bar>span{display:flex;align-items:baseline;gap:8px;padding:9px 18px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.75);
 background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.15)}
@@ -38,15 +38,15 @@ background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);backdrop
 background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 20px rgba(0,0,0,.3);transition:transform .2s}
 #pauseBtn:hover{transform:scale(1.1)}#pauseBtn:active{transform:scale(.94)}
 #pauseBtn img{width:30px;height:30px;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
-#done{display:flex;gap:6px;margin-bottom:12px;font-size:20px;min-height:30px;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}
+#done{display:flex;gap:10px;margin-bottom:14px;font-size:clamp(26px,7vw,34px);min-height:44px;align-items:center;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}
 #done span{opacity:.3;filter:grayscale(1);transition:all .4s}
 #done span.on{opacity:1;filter:none;transform:scale(1.2);text-shadow:0 0 14px var(--gold)}
-#g{touch-action:none;user-select:none;-webkit-user-select:none;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:6px;width:min(94vw,520px);padding:10px;box-sizing:border-box;border-radius:26px;
+#g{touch-action:none;user-select:none;-webkit-user-select:none;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:6px;width:var(--bs);margin-top:auto;margin-bottom:auto;padding:10px;box-sizing:border-box;border-radius:26px;
 background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
 box-shadow:0 30px 70px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.3)}
 #g.enter{animation:enter .55s cubic-bezier(.2,.9,.3,1.2)}
 @keyframes enter{from{opacity:0;transform:translateY(24px) scale(.92)}}
-.c{aspect-ratio:1;border:1px solid rgba(255,255,255,.14);border-radius:30%;font-size:calc(min(94vw,520px) / var(--n) * .52);padding:0;display:flex;align-items:center;justify-content:center;cursor:grab;color:#fff;
+.c{aspect-ratio:1;border:1px solid rgba(255,255,255,.14);border-radius:30%;font-size:calc(var(--bs) / var(--n) * .52);padding:0;display:flex;align-items:center;justify-content:center;cursor:grab;color:#fff;
 background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.05));box-shadow:0 4px 10px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,box-shadow .15s}
 .c{text-shadow:0 3px 6px rgba(0,0,0,.35)}
 @media (hover:hover){.c:hover{transform:translateY(-2px) scale(1.06)}}
@@ -101,6 +101,25 @@ background:conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4
 -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
 .bar>span,#done,.pcard,#newGame{position:relative}
 #done::before,.bar>span::before{padding:2px}
+@property --gl{syntax:'<number>';inherits:true;initial-value:.45}
+:root{--gl:.45;animation:glowPulse 3s ease-in-out infinite}
+@keyframes glowPulse{50%{--gl:.9}}
+.bar>span{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65)),0 8px 24px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.15)}
+#done,#newGame{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65))}
+#pauseBtn,.pbtn{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65)),0 8px 20px rgba(0,0,0,.3)}
+.pbtn.big{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65)),0 12px 34px rgba(255,79,163,.45)}
+.pcard,#ov .card{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65)),0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+.bub{box-shadow:0 0 12px rgba(255,79,163,var(--gl,.5)),0 0 26px rgba(24,198,255,calc(var(--gl,.5)*.65)),0 10px 26px rgba(0,0,0,.45)}
+#start{box-shadow:0 10px 30px rgba(255,79,163,calc(var(--gl,.5)*.9)),0 0 30px rgba(24,198,255,calc(var(--gl,.5)*.5)),inset 0 1px 0 rgba(255,255,255,.4)}
+#ovb{box-shadow:0 10px 30px rgba(62,230,176,calc(var(--gl,.5)*.9)),0 0 30px rgba(24,198,255,calc(var(--gl,.5)*.5)),inset 0 1px 0 rgba(255,255,255,.5)}
+#game{padding-top:58px}
+#done{max-width:calc(100vw - 40px);flex-wrap:wrap;justify-content:center}
+@media (max-width:480px){
+.bar{gap:8px}
+.bar>span{padding:8px 13px;gap:6px;font-size:11px}
+.bar b{font-size:20px}
+#done{gap:6px;padding:6px 12px;font-size:clamp(20px,6vw,26px);min-height:38px}
+}
 </style></head><body>
 <div id="homeScreen"><div class="hbig"><span>🍎</span><span>🍌</span><span>🍇</span></div><h1>Fruit Lines</h1><button class="r" id="start">Start Game</button><button id="newGame">New Game</button></div>
 <div id="game">

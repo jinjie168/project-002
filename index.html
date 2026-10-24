@@ -436,7 +436,24 @@ $('pmRestart').onclick=()=>{Snd.click();closePm();init();};
 $('pmHome').onclick=()=>{Snd.click();goHome();};
 Snd.load();
 if(!(window.CSS&&CSS.registerProperty))document.documentElement.classList.add('fb');
-if(navigator.maxTouchPoints>1)document.documentElement.classList.add('lite');
+(function(){
+  const h=document.documentElement,touch=navigator.maxTouchPoints>1;
+  let saved=null;try{saved=localStorage.getItem('fruitLines.perf');}catch(e){}
+  if(touch&&(saved==='lite'||!(window.CSS&&CSS.registerProperty))){h.classList.add('lite');return;}
+  let last=0,t0=0;const ds=[];
+  function f(t){
+    if(document.hidden)return;
+    if(!t0)t0=t;
+    if(last&&t-t0>400)ds.push(t-last);
+    last=t;
+    if(t-t0<1800){requestAnimationFrame(f);return;}
+    ds.sort((x,y)=>x-y);
+    const med=ds[Math.floor(ds.length/2)]||16,thr=touch?28:50,slow=ds.filter(d=>d>thr).length/(ds.length||1);
+    const bad=touch?(med>22||slow>.3):(med>40||slow>.6);
+    if(bad){h.classList.add('lite');if(touch){try{localStorage.setItem('fruitLines.perf','lite');}catch(e){}}}
+  }
+  requestAnimationFrame(f);
+})();
 function applyZoom(){document.documentElement.classList.toggle('sm',window.innerWidth/window.innerHeight<.6);}
 applyZoom();
 window.addEventListener('resize',applyZoom);

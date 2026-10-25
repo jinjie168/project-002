@@ -430,7 +430,7 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
       x.globalAlpha=.7*pulse;x.drawImage(this.gtmp,0,0,W,W);x.globalAlpha=1;}
     x.drawImage(this.panel,0,0,W,W);
     const ts=this.tile.width/d,an=this.anim,bs=this.bst;
-    const dc=(i,X,Y,sc,rot,al)=>{x.save();x.globalAlpha=al;x.translate(X+c/2,Y+c/2);if(rot)x.rotate(rot);x.scale(sc,sc);
+    const dc=(i,X,Y,sc,rot,al)=>{if(g[i]===null||this.sp[g[i]]==null)return;x.save();x.globalAlpha=al;x.translate(X+c/2,Y+c/2);if(rot)x.rotate(rot);x.scale(sc,sc);
       x.drawImage(this.tile,-ts/2,-ts/2,ts,ts);x.drawImage(this.sp[g[i]],-c/2,-c/2,c,c);x.restore();};
     for(let i=0;i<g.length;i++){
       const [X,Y]=this.pos(i);
@@ -449,7 +449,7 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
     if(bs&&now-bs.t0>=350)this.bst=null;
     if(an){
       const u=Math.min(1,(now-an.t0)/170),e=1-Math.pow(1-u,3),[ax,ay]=this.pos(an.a),[bx,by]=this.pos(an.b);
-      dc(an.a,bx+(ax-bx)*e,by+(ay-by)*e,1,0,1);dc(an.b,ax+(bx-ax)*e,ay+(by-ay)*e,1,0,1);
+      try{dc(an.a,bx+(ax-bx)*e,by+(ay-by)*e,1,0,1);dc(an.b,ax+(bx-ax)*e,ay+(by-ay)*e,1,0,1);}catch(err){}
       if(u>=1){this.anim=null;const cb=an.cb;if(cb)cb();}
     }
     if(this.sel>=0&&g[this.sel]!==null){

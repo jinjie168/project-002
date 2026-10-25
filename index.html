@@ -322,9 +322,11 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
   init(){
     try{
       const t=document.createElement('canvas');if(!t.getContext('2d'))return false;
-      this.cv=document.createElement('canvas');this.cv.id='cv';this.x=this.cv.getContext('2d');
-      if(!this.x)return false;
-      G.appendChild(this.cv);document.documentElement.classList.add('cv');this.on=true;return true;
+      this.cg=document.createElement('canvas');this.cb=document.createElement('canvas');this.cv=document.createElement('canvas');this.cv.id='cv';
+      this.gx=this.cg.getContext('2d');this.bx=this.cb.getContext('2d');this.x=this.cv.getContext('2d');
+      if(!this.gx||!this.bx||!this.x)return false;
+      G.appendChild(this.cg);G.appendChild(this.cb);G.appendChild(this.cv);
+      document.documentElement.classList.add('cv');this.on=true;return true;
     }catch(e){return false;}
   },
   col(t){const x=t*(RB.length-1),i=Math.min(Math.floor(x),RB.length-2),f=x-i,h=c=>[1,3,5].map(k=>parseInt(c.substr(k,2),16));
@@ -336,8 +338,9 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
     const d=Math.min(window.devicePixelRatio||1,this.q===2?2:1),M=Math.round(34*px),W=S+2*M;
     Object.assign(this,{px,S,d,M,W,P:10*px,gap:6*px});
     this.c=(S-2*this.P-(n-1)*this.gap)/n;
-    const cv=this.cv;cv.width=Math.round(W*d);cv.height=Math.round(W*d);
-    cv.style.cssText='position:absolute;left:'+(-M)+'px;top:'+(-M)+'px;width:'+W+'px;height:'+W+'px;touch-action:none;display:block';
+    [this.cg,this.cb,this.cv].forEach((cv,k)=>{cv.width=Math.round(W*d);cv.height=Math.round(W*d);
+      cv.style.cssText='position:absolute;left:'+(-M)+'px;top:'+(-M)+'px;width:'+W+'px;height:'+W+'px;display:block;'+(k<2?'pointer-events:none':'touch-action:none');});
+    this.sig=null;this.glowDirty=true;
     this.build();
   },
   build(){
@@ -410,6 +413,29 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
     const f=t=>{if(!this.loop||id!==this.tok||!this.on)return;try{this.frame(t);}catch(e){console.error(e);}requestAnimationFrame(f);};
     requestAnimationFrame(f);
   },
+  dc(ctx,i,X,Y,sc,rot,al){
+    const c=this.c,ts=this.tile.width/this.d;
+    if(g[i]===null||this.sp[g[i]]==null)return;
+    ctx.save();ctx.globalAlpha=al;ctx.translate(X+c/2,Y+c/2);if(rot)ctx.rotate(rot);ctx.scale(sc,sc);
+    ctx.drawImage(this.tile,-ts/2,-ts/2,ts,ts);ctx.drawImage(this.sp[g[i]],-c/2,-c/2,c,c);ctx.restore();
+  },
+  drawGlow(t){
+    const gx=this.gx,{d,W}=this;
+    gx.setTransform(d,0,0,d,0,0);gx.clearRect(0,0,W,W);
+    const pulse=this.q===2?.7+.3*Math.sin(t/477):.85;
+    if(this.q===2)this.glowCompose(t/3500*Math.PI*2);
+    gx.globalAlpha=.7*pulse;gx.drawImage(this.gtmp,0,0,W,W);gx.globalAlpha=1;
+  },
+  drawBoard(ex){
+    const b=this.bx,{d,W,c,px}=this;
+    b.setTransform(d,0,0,d,0,0);b.clearRect(0,0,W,W);b.drawImage(this.panel,0,0,W,W);
+    for(let i=0;i<g.length;i++){
+      const [X,Y]=this.pos(i);
+      if(g[i]===null){b.save();b.setLineDash([4*px,4*px]);b.strokeStyle='rgba(255,255,255,.14)';b.lineWidth=px;rr(b,X+1.5*px,Y+1.5*px,c-3*px,c-3*px,c*.3);b.stroke();b.restore();continue;}
+      if(ex.has(i))continue;
+      this.dc(b,i,X,Y,1,0,1);
+    }
+  },
   frame(t){
     if(!this.panel||!g)return;
     const cap=this.q===2?0:this.q===1?30:48;
@@ -424,40 +450,41 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
         if(q===2&&(dm>34||jm>22)){this.setQ(1);return;}
         if(q===1&&jm>16){this.setQ(0);return;}
       }}
+    const an=this.anim,bs=this.bst;
+    // layer 1 (bottom): soft rainbow glow, refreshed every other frame
+    if(this.q===2){this.gf=(this.gf||0)+1;if(this.gf%2===0)this.drawGlow(t);}
+    else if(this.glowDirty){this.drawGlow(t);this.glowDirty=false;}
+    // layer 2: the board. Fixed tiles and fruits are painted once and only repainted when something changes
+    const ex=new Set();
+    if(an){ex.add(an.a);ex.add(an.b);}
+    if(this.sel>=0&&g[this.sel]!==null)ex.add(this.sel);
+    if(bs)bs.set.forEach(i=>ex.add(i));
+    const sig=g.join(',')+'|'+[...ex].join(',')+'|'+W+'|'+d;
+    if(sig!==this.sig){this.sig=sig;this.drawBoard(ex);}
+    // layer 3 (top): only the things that move
     x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,W,W);
-    const pulse=this.q===2?.7+.3*Math.sin(t/477):.85,ang=this.q===0?.6:t/3500*Math.PI*2;
-    {if(this.q===2)this.glowCompose(ang);
-      x.globalAlpha=.7*pulse;x.drawImage(this.gtmp,0,0,W,W);x.globalAlpha=1;}
-    x.drawImage(this.panel,0,0,W,W);
-    const ts=this.tile.width/d,an=this.anim,bs=this.bst;
-    const dc=(i,X,Y,sc,rot,al)=>{if(g[i]===null||this.sp[g[i]]==null)return;x.save();x.globalAlpha=al;x.translate(X+c/2,Y+c/2);if(rot)x.rotate(rot);x.scale(sc,sc);
-      x.drawImage(this.tile,-ts/2,-ts/2,ts,ts);x.drawImage(this.sp[g[i]],-c/2,-c/2,c,c);x.restore();};
-    for(let i=0;i<g.length;i++){
-      const [X,Y]=this.pos(i);
-      if(g[i]===null){x.save();x.setLineDash([4*px,4*px]);x.strokeStyle='rgba(255,255,255,.14)';x.lineWidth=px;rr(x,X+1.5*px,Y+1.5*px,c-3*px,c-3*px,c*.3);x.stroke();x.restore();continue;}
-      if(an&&(i===an.a||i===an.b))continue;
-      if(i===this.sel)continue;
-      if(bs&&bs.set.has(i)){
-        const p=Math.min(1,(now-bs.t0)/350);let sc,rot,al;
+    if(bs){
+      const p=Math.min(1,(now-bs.t0)/350);
+      bs.set.forEach(i=>{
+        const [X,Y]=this.pos(i);let sc,rot,al;
         if(p<.35){const q=p/.35;sc=1+.3*q;rot=.14*q;al=1;}else{const q=(p-.35)/.65;sc=1.3*(1-q);rot=.14-.49*q;al=1-q;}
         if(p<.7){x.save();x.globalAlpha=.55*(1-Math.abs(p-.35)/.35);const gr=x.createRadialGradient(X+c/2,Y+c/2,0,X+c/2,Y+c/2,c*.75);gr.addColorStop(0,'rgba(255,211,107,.9)');gr.addColorStop(1,'rgba(255,211,107,0)');x.fillStyle=gr;x.fillRect(X-c*.3,Y-c*.3,c*1.6,c*1.6);x.restore();}
-        if(sc>0.01)dc(i,X,Y,sc,rot,al);
-        continue;
-      }
-      dc(i,X,Y,1,0,1);
+        if(sc>0.01)this.dc(x,i,X,Y,sc,rot,al);
+      });
+      if(now-bs.t0>=350)this.bst=null;
     }
-    if(bs&&now-bs.t0>=350)this.bst=null;
     if(an){
       const u=Math.min(1,(now-an.t0)/170),e=1-Math.pow(1-u,3),[ax,ay]=this.pos(an.a),[bx,by]=this.pos(an.b);
-      try{dc(an.a,bx+(ax-bx)*e,by+(ay-by)*e,1,0,1);dc(an.b,ax+(bx-ax)*e,ay+(by-ay)*e,1,0,1);}catch(err){}
+      try{this.dc(x,an.a,bx+(ax-bx)*e,by+(ay-by)*e,1,0,1);this.dc(x,an.b,ax+(bx-ax)*e,ay+(by-ay)*e,1,0,1);}catch(err){}
       if(u>=1){this.anim=null;const cb=an.cb;if(cb)cb();}
     }
     if(this.sel>=0&&g[this.sel]!==null){
       const [X,Y]=this.pos(this.sel);
       x.save();x.shadowColor='rgba(255,211,107,.9)';x.shadowBlur=14*px;rr(x,X-1,Y-1,c+2,c+2,c*.3);x.lineWidth=2*px;x.strokeStyle='#ffd36b';x.stroke();x.restore();
-      dc(this.sel,X-c*.07,Y-c*.07,1.14,0,1);
+      this.dc(x,this.sel,X-c*.07,Y-c*.07,1.14,0,1);
     }
     // rainbow running ring
+    const ang=this.q===0?.6:t/3500*Math.PI*2;
     x.save();x.beginPath();this.band(x);x.clip('evenodd');x.translate(W/2,W/2);x.rotate(ang);x.drawImage(this.wheel,-W*.75,-W*.75,W*1.5,W*1.5);x.restore();
     // tutorial hint
     const h=this.hint;
@@ -492,7 +519,7 @@ const CV={q:2,auto:true,on:false,sel:-1,anim:null,bst:null,parts:[],hint:null,lo
 };
 function toLite(){
   const h=document.documentElement;
-  CV.run(false);CV.on=false;if(CV.cv)CV.cv.remove();
+  CV.run(false);CV.on=false;[CV.cg,CV.cb,CV.cv].forEach(e=>{if(e)e.remove();});
   h.classList.remove('cv');h.classList.add('lite');
   if(navigator.maxTouchPoints>1){try{localStorage.setItem('fruitLines.perf','lite');}catch(e){}}
   draw();
@@ -523,7 +550,7 @@ function init(){
   cleared=new Set();busy=false;over=false;start=null;
   window._icons=perm;
   $('msg').textContent='';$('msg').style.color='';$('ov').style.display='none';clearTimeout(timer);
-  if(CV.on){CV.sel=-1;CV.anim=null;CV.bst=null;CV.parts=[];CV.hint=null;CV.layout();CV.run(true);}
+  if(CV.on){CV.sel=-1;CV.anim=null;CV.bst=null;CV.parts=[];CV.hint=null;CV.sig=null;CV.layout();CV.run(true);}
   draw();
   const bw=$('bw');bw.classList.remove('enter');void bw.offsetWidth;bw.classList.add('enter');
   tutReset();

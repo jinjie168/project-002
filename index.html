@@ -355,6 +355,23 @@ box-shadow:0 0 max(calc(12*var(--px,1px)),7px) rgba(255,79,163,var(--gl,.5)),0 0
 .mAdv body::before,.mAdv body::after,.mCla body::before,.mCla body::after{display:none}
 .sttab{white-space:nowrap;font-size:calc(14*var(--px,1px))}
 .sttab:last-child,.sttab.on:last-child{padding-right:calc(22*var(--px,1px))}
+/* settings tabs: notch corners drawn by the neighbouring tab, no divider on the selected tab */
+.sttab.on,.sttab.on:first-child{border-left:0}
+.sttab.nl{border-right:calc(2*var(--px,1px)) solid rgba(255,255,255,.35);border-bottom-right-radius:calc(26*var(--px,1px))}
+.sttab.nr{border-bottom-left-radius:calc(26*var(--px,1px))}
+/* rainbow rings that do not depend on CSS masks (work on every browser): solid fill + gradient border */
+:root{--gl:.85}
+.bar>span,#done,.pcard,.pbtn,#ov .card,#scoreBox,.stcard{border:max(calc(2*var(--px,1px)),1.8px) solid transparent}
+.bar>span::before,#done::before,.pcard::before,.pbtn::before,#ov .card::before,#scoreBox::before,.stcard::before,.trcard::before,#ovb::before{display:none!important}
+.bar>span,#done,#scoreBox{background:linear-gradient(#1b1650,#1b1650) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+.pcard,#ov .card{background:linear-gradient(145deg,#2b2370,#1a1450) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+.pbtn{background:linear-gradient(#2a2270,#2a2270) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+.pbtn.pri{background:linear-gradient(135deg,#5b3bb8,#a83a86) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+.stcard{background:linear-gradient(145deg,#2e2674,#1b1550) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+.trcard{background:linear-gradient(#fff,#fff) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+#ovb{border:max(calc(2*var(--px,1px)),1.8px) solid transparent;background:linear-gradient(135deg,#17c9a0,#3ee6b0 60%,#8cf7d6) padding-box,conic-gradient(from 0deg,#ff4fa3,#ff9a3c,#ffd36b,#3ee6b0,#18c6ff,#7c4dff,#ff4fa3) border-box}
+/* Classic has no levels */
+.mCla .bar>span:first-child{display:none}
 </style></head><body>
 <div id="scoreBox"><b id="scoreNum">0</b></div>
 <div id="oldmsg"><div><div style="font-size:56px">🍎🍌🍇</div><h2>Please update your browser</h2><p>This browser is too old to run Glory Fruits.<br>Update it, or open the game on a newer device.</p></div></div>
@@ -703,18 +720,19 @@ function shuffleSwap(){
 }
 function init(){
   counted=false;
-  n=3+Math.floor((level-1)/PER);Save.save({level});
+  n=Math.min(9,3+Math.floor((level-1)/PER));
+  {const sv=Save.load();if(gameMode==='classic')sv.classic=level;else sv.level=level;Save.save(sv);}
   document.documentElement.style.setProperty('--n',n);
   let perm,k=0;
   if(level===1){
     perm=[0,1,2];g=[2,0,2, 1,1,0, 1,0,2];left=8;
   }else{
-    const stage=(level-1)%PER;
+    const stage=level<=21?(level-1)%PER:2,extra=level>21?Math.min(260,(level-21)*2):0,tight=level>21?Math.min(.3,(level-21)*.0007):0;
     perm=[...E.keys()].sort(()=>Math.random()-.5).slice(0,n);
     g=Array.from({length:n*n},(_,i)=>perm[Math.floor(i/n)]);
-    const target=Math.round(n*n*(0.9+0.25*stage))+4;let guard=0;
+    const target=Math.round(n*n*(0.9+0.25*stage))+4+extra;let guard=0;
     while((k<target||fullLines().length)&&guard++<20000){if(shuffleSwap())k++;}
-    left=Math.ceil(k*(1.6-0.1*stage))+2;
+    left=Math.ceil(k*Math.max(1.3,1.6-0.1*stage-tight))+2;
   }
   chests=[];
   if(gameMode==='adventure'&&level>1){
@@ -819,10 +837,10 @@ function end(){
   if(cleared.size===n){
     over=true;retry=false;tutDone(0);tutDone(1);tutDone(2);Snd.win();onWin();
     {const hh=$('hand');if(hh)hh.remove();document.querySelectorAll('.bub').forEach(b=>b.remove());}
-    const last=level>=MAX;
+    const last=false;
     $('ovi').textContent=last?'🏆':'🎉';
     $('ovt').textContent=last?'You did it!':'Congratulations!';
-    $('ovs').textContent=last?'All 21 levels cleared.':'Level '+level+' complete!';
+    $('ovs').textContent=gameMode==='classic'?'Well done!':'Level '+level+' complete!';
     $('ovb').textContent=last?'Play again ▶':'Next level ▶';
     $('ov').style.display='flex';confetti();
     if(!last)timer=setTimeout(goNext,3500);
@@ -899,7 +917,7 @@ function confetti(){
   for(let i=0;i<32;i++){const sp=document.createElement('span');sp.textContent=set[i%set.length];
     sp.style.left=Math.random()*100+'%';sp.style.animationDuration=(2.4+Math.random()*2.4)+'s';sp.style.animationDelay=(Math.random()*1.2)+'s';c.appendChild(sp);}
 }
-function goNext(){clearTimeout(timer);level=level>=MAX?1:level+1;init();}
+function goNext(){clearTimeout(timer);level=level+1;init();}
 $('ovb').onclick=()=>{Snd.click();if(retry){retry=false;clearTimeout(timer);init();}else goNext();};
 function refreshHome(){}
 function play(lv){const hc=document.documentElement.classList;hc.remove('onhome');hc.toggle('mAdv',gameMode==='adventure');hc.toggle('mCla',gameMode==='classic');level=lv;$('homeScreen').style.display='none';$('game').style.display='flex';init();}
@@ -917,7 +935,7 @@ function onWin(){
   ach.rounds++;
   ach.perse=Math.max(ach.perse,Math.min(10,sess.streak));
   ach.inv=Math.max(ach.inv,Math.min(5,sess.perfect));
-  if(level>=MAX&&gameMode==='adventure')ach.adv++;
+  if(level===21&&gameMode==='adventure')ach.adv++;
   saveAch();
 }
 function onLose(){if(counted)return;counted=true;ach.rounds++;sess.perfect=0;saveAch();}
@@ -1021,7 +1039,8 @@ $('trChest').src=CHEST_SRC;
 $('trX').querySelector('img').src=$('stX').querySelector('img').src;
 document.documentElement.style.setProperty('--chest','url('+CHEST_SRC+')');
 CV.chestImg=new Image();CV.chestImg.onload=()=>{CV.sig=null;};CV.chestImg.src=CHEST_SRC;
-function startGame(m){Snd.init();Snd.click();gameMode=m;play(Save.load().level||1);}
+function resetMode(){const sv=Save.load();if(gameMode==='classic')sv.classic=1;else sv.level=1;Save.save(sv);}
+function startGame(m){Snd.init();Snd.click();gameMode=m;const sv=Save.load();play(m==='classic'?(sv.classic||1):(sv.level||1));}
 $('bAdv').onclick=()=>startGame('adventure');
 $('bCla').onclick=()=>startGame('classic');
 $('bAch').onclick=()=>{Snd.init();Snd.click();renderAch();$('ac').style.display='flex';};
@@ -1062,7 +1081,7 @@ $('pqNo').onclick=()=>{Snd.click();closeQ();};
 $('pqYes').onclick=()=>{
   Snd.click();
   if(qStep===1){qStep=2;$('pqText').textContent='Are you sure? All your progress will be lost.';$('pqYes').textContent='Confirm';$('pqNo').textContent='Cancel';}
-  else{closeQ();$('st').style.display='none';closePm();sessReset();Save.save({level:1});play(1);}
+  else{closeQ();$('st').style.display='none';closePm();sessReset();resetMode();play(1);}
 };
 scoreRender();
 Snd.load();

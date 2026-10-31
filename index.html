@@ -879,7 +879,7 @@ function bfsMin(init,N,cap){
 }
 // Builds a level and knows its fewest possible moves. Bigger boards are built by undoing a known set of
 // separate swaps (so the minimum is exactly that many); the move limit is that minimum plus 5 to 10.
-function makePuzzle(n,lv){
+function makePuzzleOld(n,lv){
   const prog=Math.min(1,(lv-1)/40);
   const perm=[...E.keys()].sort(()=>Math.random()-.5).slice(0,n);
   const extra=Math.max(5,Math.min(10,Math.round(10-5*prog+(Math.random()*2-1))));
@@ -903,6 +903,68 @@ function makePuzzle(n,lv){
   }
   const g0=Array.from({length:n*n},(_,i)=>perm[Math.floor(i/n)]);g0[0]=perm[1];g0[n]=perm[0];
   return {perm:perm,g:g0,min:1,extra:extra,left:1+extra,swaps:[[0,n]]};
+}
+// ---------- solver: finds a short solution for a fully mixed-up board (its length is the level's "fewest moves") ----------
+function hungarian(cost,n){const INF=1e9,u=new Array(n+1).fill(0),v=new Array(n+1).fill(0),p=new Array(n+1).fill(0),way=new Array(n+1).fill(0);
+  for(let i=1;i<=n;i++){p[0]=i;let j0=0;const minv=new Array(n+1).fill(INF),used=new Array(n+1).fill(false);
+    do{used[j0]=true;const i0=p[j0];let delta=INF,j1=0;
+      for(let j=1;j<=n;j++)if(!used[j]){const cur=cost[i0-1][j-1]-u[i0]-v[j];if(cur<minv[j]){minv[j]=cur;way[j]=j0;}if(minv[j]<delta){delta=minv[j];j1=j;}}
+      for(let j=0;j<=n;j++){if(used[j]){u[p[j]]+=delta;v[j]-=delta;}else minv[j]-=delta;}
+      j0=j1;}while(p[j0]!==0);
+    do{const j1=way[j0];p[j0]=p[j1];j0=j1;}while(j0);}
+  const T=new Array(n);let total=0;for(let j=1;j<=n;j++){T[p[j]-1]=j-1;total+=cost[p[j]-1][j-1];}return {T:T,total:total};}
+function assignRows(st,N){const cost=Array.from({length:N},()=>new Array(N).fill(0));
+  for(let i=0;i<N*N;i++){const v=st[i];if(v<0)continue;const r=(i/N)|0;for(let t=0;t<N;t++)cost[v][t]+=Math.abs(r-t);}
+  return hungarian(cost,N);}
+function transposeSt(st,N){const t=new Array(N*N);for(let r=0;r<N;r++)for(let c=0;c<N;c++)t[c*N+r]=st[r*N+c];return t;}
+function solverRun(N,st0,T,maxSteps){
+  const n2=N*N,W2=8,W1=4,NOISE=.9,PW=10;let st=st0.slice(),steps=0;const moves=[];
+  const phi=s=>{let p=0;for(let i=0;i<n2;i++){const v=s[i];if(v>=0)p+=Math.abs(((i/N)|0)-T[v]);}return p;};
+  const opp=s=>{let sc=0;for(let r=0;r<N-1;r++)for(let c=0;c<N;c++){const a=r*N+c,x=s[a],y=s[a+N];if(x===y)continue;
+      let d=0;if(x>=0)d+=Math.abs(r+1-T[x])-Math.abs(r-T[x]);if(y>=0)d+=Math.abs(r-T[y])-Math.abs(r+1-T[y]);
+      if(d===-2)sc+=W2;else if(d===-1)sc+=W1;}return sc;};
+  const clearLines=(s,a,b)=>{for(const i of [a,b]){const r=(i/N)|0,c=i%N;let v=s[r*N],ok=v>=0;for(let k=1;k<N&&ok;k++)if(s[r*N+k]!==v)ok=false;if(ok)for(let k=0;k<N;k++)s[r*N+k]=-1;
+      v=s[c];ok=v>=0;for(let k=1;k<N&&ok;k++)if(s[k*N+c]!==v)ok=false;if(ok)for(let k=0;k<N;k++)s[k*N+c]=-1;}};
+  const empty=s=>{for(let i=0;i<n2;i++)if(s[i]>=0)return false;return true;};
+  const seen=new Set([st.join(',')]);
+  while(!empty(st)){
+    if(++steps>maxSteps)return null;
+    const P=phi(st),cands=[];
+    for(let a=0;a<n2;a++){const r=(a/N)|0,c=a%N;
+      for(let dir=0;dir<2;dir++){
+        let b;if(dir===0){if(c===N-1)continue;b=a+1;}else{if(r===N-1)continue;b=a+N;}
+        const x=st[a],y=st[b];if(x===y)continue;
+        let d=0;if(dir===1){if(x>=0)d+=Math.abs(r+1-T[x])-Math.abs(r-T[x]);if(y>=0)d+=Math.abs(r-T[y])-Math.abs(r+1-T[y]);}
+        cands.push([a,b,d]);}}
+    let dmin=9;for(const k of cands)if(k[2]<dmin)dmin=k[2];
+    const scored=cands.filter(k=>k[2]===dmin).map(k=>{const t=st.slice();const x=t[k[0]];t[k[0]]=t[k[1]];t[k[1]]=x;return [k,(P+k[2])*PW-opp(t)+Math.random()*NOISE,t];});
+    scored.sort((p,q)=>p[1]-q[1]);
+    let moved=false;
+    for(const sc of scored){const t=sc[2];clearLines(t,sc[0][0],sc[0][1]);const ky=t.join(',');if(seen.has(ky))continue;seen.add(ky);st=t;moves.push([sc[0][0],sc[0][1]]);moved=true;break;}
+    if(!moved){
+      const rest=cands.filter(k=>k[2]!==dmin).sort((p,q)=>p[2]-q[2]);
+      for(const k of rest){const t=st.slice();const x=t[k[0]];t[k[0]]=t[k[1]];t[k[1]]=x;clearLines(t,k[0],k[1]);const ky=t.join(',');if(seen.has(ky))continue;seen.add(ky);st=t;moves.push([k[0],k[1]]);moved=true;break;}
+      if(!moved)return null;}
+  }
+  return moves;}
+function solveMin(st0,N,budgetMs,runs){
+  const A=assignRows(st0,N),tr=transposeSt(st0,N),B=assignRows(tr,N),useT=B.total<A.total,st=useT?tr:st0,T=useT?B.T:A.T;
+  let best=null;const t0=performance.now();
+  for(let k=0;k<runs;k++){const m=solverRun(N,st,T,N*N*12+200);if(m&&(best===null||m.length<best.length))best=m;if(performance.now()-t0>budgetMs&&best!==null)break;}
+  return {S:best?best.length:null,moves:best,transposed:useT,lb:Math.ceil(Math.min(A.total,B.total)/2)};}
+function makePuzzle(n,lv){
+  if(n===3)return makePuzzleOld(n,lv);   // tiny board: exact search
+  const prog=Math.min(1,(lv-1)/40);
+  const perm=[...E.keys()].sort(()=>Math.random()-.5).slice(0,n);
+  const extra=Math.max(5,Math.min(10,Math.round(10-5*prog+(Math.random()*2-1))));
+  for(let attempt=0;attempt<10;attempt++){
+    const b0=[];for(let j=0;j<n;j++)for(let k=0;k<n;k++)b0.push(j);
+    for(let i=b0.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=b0[i];b0[i]=b0[j];b0[j]=t;}
+    if(stLines(b0,n).length)continue;
+    const r=solveMin(b0,n,300,18);
+    if(r.S!==null)return {perm:perm,g:b0.map(j=>perm[j]),min:r.S,extra:extra,left:r.S+extra,swaps:null,lb:r.lb};
+  }
+  return makePuzzleOld(n,lv);
 }
 function init(){
   roundCounted=false;winCounted=false;lostThisLevel=false;
